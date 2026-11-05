@@ -1,7 +1,7 @@
 
 /* ==========================================================================
-   Saddam Hussain Sahito — English Language & Teaching Portfolio
-   Complete script  ·  js/main.js
+   Saddam Hussain Sahito — Portfolio
+   Complete main.js
    ========================================================================== */
 (() => {
   'use strict';
@@ -9,34 +9,38 @@
   const d = document, root = d.documentElement;
   root.classList.add('js');
 
-  const $  = (s, r = d) => r.querySelector(s);
+  const $ = (s, r = d) => r.querySelector(s);
   const $$ = (s, r = d) => [...r.querySelectorAll(s)];
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const fine   = matchMedia('(hover:hover) and (pointer:fine)').matches;
-  const clamp  = (v, a, b) => Math.min(b, Math.max(a, v));
+  const fine = matchMedia('(hover:hover) and (pointer:fine)').matches;
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
-  /* ---------- 1. Hero / page headings ---------- */
+  /* 1. Hero heading animation */
   if (!reduce) {
     $$('.hero h1, .phead h1').forEach(h => {
       if (h.children.length) return;
+
       const text = h.textContent.trim();
       h.setAttribute('aria-label', text);
       h.textContent = '';
+
       text.split(/\s+/).forEach((word, i, arr) => {
         const w = d.createElement('span');
         w.className = 'w';
         w.setAttribute('aria-hidden', 'true');
         w.style.setProperty('--i', i);
+
         const s = d.createElement('span');
         s.textContent = word;
         w.appendChild(s);
         h.appendChild(w);
+
         if (i < arr.length - 1) h.appendChild(d.createTextNode(' '));
       });
     });
   }
 
-  /* ---------- 2. Progress bar, back-to-top, cursor glow ---------- */
+  /* 2. Progress bar and back-to-top */
   const bar = d.createElement('div');
   bar.className = 'progress';
   bar.setAttribute('aria-hidden', 'true');
@@ -46,11 +50,17 @@
   top.type = 'button';
   top.className = 'totop';
   top.setAttribute('aria-label', 'Back to top');
-  top.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
-  top.addEventListener('click', () => scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' }));
+  top.innerHTML =
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
+
+  top.addEventListener('click', () => {
+    scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+  });
+
   d.body.appendChild(top);
 
   let glow = null;
+
   if (fine && !reduce) {
     glow = d.createElement('div');
     glow.className = 'cglow';
@@ -58,7 +68,7 @@
     d.body.appendChild(glow);
   }
 
-  /* ---------- 3. Scroll handling ---------- */
+  /* 3. Scroll handling */
   const header = $('header');
   const tl = $('.tl');
   const steps = $$('.step');
@@ -66,18 +76,33 @@
 
   function onScroll() {
     ticking = false;
+
     const y = scrollY;
     const max = root.scrollHeight - innerHeight;
-    bar.style.setProperty('--p', max > 0 ? clamp(y / max, 0, 1).toFixed(4) : 0);
+
+    bar.style.setProperty(
+      '--p',
+      max > 0 ? clamp(y / max, 0, 1).toFixed(4) : 0
+    );
+
     if (header) header.classList.toggle('scrolled', y > 24);
+
     top.classList.toggle('show', y > 700);
+
     if (!reduce) root.style.setProperty('--py', Math.round(y));
 
     if (tl) {
       const r = tl.getBoundingClientRect();
       const mid = innerHeight * 0.62;
-      tl.style.setProperty('--tlp', clamp((mid - r.top) / r.height, 0, 1).toFixed(4));
-      steps.forEach(s => s.classList.toggle('on', s.getBoundingClientRect().top < mid));
+
+      tl.style.setProperty(
+        '--tlp',
+        clamp((mid - r.top) / r.height, 0, 1).toFixed(4)
+      );
+
+      steps.forEach(s => {
+        s.classList.toggle('on', s.getBoundingClientRect().top < mid);
+      });
     }
   }
 
@@ -91,33 +116,47 @@
   addEventListener('resize', onScroll);
   onScroll();
 
-  /* ---------- 4. Scroll reveal ---------- */
+  /* 4. Scroll reveal */
   const reveals = $$('.reveal');
 
   const show = el => {
     el.classList.add('in');
-    const delay = parseFloat((el.style.getPropertyValue('--d') || '0').replace('s', '')) || 0;
-    setTimeout(() => el.classList.add('settled'), reduce ? 0 : 1000 + delay * 1000);
+
+    const delay =
+      parseFloat((el.style.getPropertyValue('--d') || '0').replace('s', '')) || 0;
+
+    setTimeout(() => {
+      el.classList.add('settled');
+    }, reduce ? 0 : 1000 + delay * 1000);
   };
 
   if ('IntersectionObserver' in window) {
-    const io = new IntersectionObserver(es => es.forEach(e => {
-      if (e.isIntersecting) {
-        show(e.target);
-        io.unobserve(e.target);
-      }
-    }), { threshold: .12, rootMargin: '0px 0px -5% 0px' });
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          show(entry.target);
+          io.unobserve(entry.target);
+        }
+      });
+    }, {
+      threshold: .12,
+      rootMargin: '0px 0px -5% 0px'
+    });
 
     reveals.forEach(el => io.observe(el));
   } else {
     reveals.forEach(show);
   }
 
-  /* ---------- 5. Professional image transitions ---------- */
-  const imageMotionStyle = d.createElement('style');
-  imageMotionStyle.id = 'portfolio-image-motion';
-  imageMotionStyle.textContent = `
-    main img:not(.gxlb-img), .gx-item img, .frame img, .card img {
+  /* 5. Professional image transitions */
+  const imageStyle = d.createElement('style');
+  imageStyle.id = 'portfolio-image-motion';
+
+  imageStyle.textContent = `
+    main img:not(.gxlb-img),
+    .gx-item img,
+    .frame img,
+    .card img {
       transition:
         transform 650ms cubic-bezier(.2,.7,.2,1),
         filter 650ms cubic-bezier(.2,.7,.2,1),
@@ -125,7 +164,9 @@
       will-change: transform;
     }
 
-    .gx-item, .frame, .card {
+    .gx-item,
+    .frame,
+    .card {
       overflow: hidden;
     }
 
@@ -164,6 +205,7 @@
         transform: scale(1.07) translateY(12px);
         filter: blur(3px) saturate(.8);
       }
+
       to {
         opacity: 1;
         transform: scale(1.015) translateY(0);
@@ -172,108 +214,35 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-      main img:not(.gxlb-img), .gx-item img, .frame img, .card img {
+      main img:not(.gxlb-img),
+      .gx-item img,
+      .frame img,
+      .card img {
         transition: none !important;
         transform: none !important;
       }
     }
   `;
 
-  if (!$('#portfolio-image-motion')) d.head.appendChild(imageMotionStyle);
+  if (!$('#portfolio-image-motion')) {
+    d.head.appendChild(imageStyle);
+  }
 
-  /* ---------- 6. Animated statistics across all portfolio pages ---------- */
-  /*
-    Explicit data-count values are supported.
-    Automatic detection also looks for numbers inside statistic cards
-    and near labels such as semester, hours, students, teaching, etc.
-
-    Dates, phone numbers, navigation and ordinary prose are excluded.
-  */
-
+  /* 6. Animated counters across portfolio pages */
   const statisticWords =
-    /\b(semester|internship|hours?|students?|learners?|pupils?|teaching|levels?|responsibilit(?:y|ies)|years? of experience|experience|projects?|certificates?|courses?|workshops?|achievements?|awards?|classes?|lessons?|schools?|institutions?|subjects?|skills? taught|percentage|percent)\b/i;
+    /\b(semester|internship|hours?|students?|learners?|pupils?|teaching|levels?|responsibilit(?:y|ies)|experience|projects?|certificates?|courses?|workshops?|achievements?|awards?|classes?|lessons?|schools?|institutions?|subjects?|skills? taught|percentage|percent|trained|taught|completed|years?)\b/i;
 
-  const statisticClass =
-    /(stat|counter|metric|number|achievement|fact|highlight|score)/i;
+  const statisticClasses =
+    /\b(stat|stats|counter|metric|number|achievement|fact|highlight|score|experience|education|internship)\b/i;
 
-  const numberPattern =
-    /^([+\-]?\s*)(\d+(?:,\d{3})*(?:\.\d+)?)(.*)$/;
+  const generatedCounters = [];
+  const numericToken = /\d+(?:,\d{3})*(?:\.\d+)?/g;
 
-  const counterSet = new Set($$('[data-count]'));
-
-  function nearbyStatisticContext(el) {
-    const parts = [];
-    let node = el;
-
-    for (let depth = 0; node && depth < 3; depth++, node = node.parentElement) {
-      parts.push(
-        node.className && typeof node.className === 'string'
-          ? node.className
-          : ''
-      );
-
-      parts.push(
-        node.getAttribute &&
-        (node.getAttribute('aria-label') || node.getAttribute('title') || '')
-          || ''
-      );
-
-      if (depth < 2) parts.push(node.textContent || '');
-    }
-
-    return parts.join(' ').slice(0, 900);
-  }
-
-  function addAutomaticStatisticCandidates() {
-    const candidates = $$('span, strong, b, em, h1, h2, h3, p, div');
-
-    candidates.forEach(el => {
-      if (counterSet.has(el) || el.children.length > 0) return;
-
-      const raw = (el.textContent || '').trim();
-      const match = raw.match(numberPattern);
-
-      if (!match) return;
-
-      const context = nearbyStatisticContext(el);
-
-      const hasStatisticClass = statisticClass.test(context);
-      const hasStatisticLabel = statisticWords.test(context);
-
-      if (!hasStatisticClass && !hasStatisticLabel) return;
-
-      if (el.closest(
-        'nav, footer, address, time, a[href^="tel:"], [data-no-counter]'
-      )) return;
-
-      if (/\b(19|20)\d{2}\b/.test(raw)) return;
-
-      const value = Number(match[2].replace(/,/g, ''));
-
-      if (!Number.isFinite(value) || value < 0 || value > 1000000) return;
-
-      el.dataset.count = String(value);
-      el.dataset.prefix = match[1];
-      el.dataset.suffix = match[3];
-
-      counterSet.add(el);
-    });
-  }
-
-  addAutomaticStatisticCandidates();
-
-  const counters = [...counterSet];
-
-  function count(el) {
+  function animateNumber(el, target, prefix = '', suffix = '') {
     if (el.dataset.counted === 'true') return;
-
-    const target = Number(el.dataset.count);
     if (!Number.isFinite(target)) return;
 
     el.dataset.counted = 'true';
-
-    const suffix = el.dataset.suffix || '';
-    const prefix = el.dataset.prefix || '';
 
     const decimals = String(target).includes('.')
       ? String(target).split('.')[1].length
@@ -289,60 +258,215 @@
       return;
     }
 
-    const duration = 1500;
+    const duration = 1600;
     const start = performance.now();
 
-    function animate(now) {
+    function frame(now) {
       const progress = Math.min((now - start) / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
-      const value = target * eased;
 
-      const displayed = progress === 1
+      const value = progress === 1
         ? target
-        : Math.round(value * (10 ** decimals)) / (10 ** decimals);
+        : Math.round(target * eased * (10 ** decimals)) / (10 ** decimals);
 
-      el.textContent = prefix + format(displayed) + suffix;
+      el.textContent = prefix + format(value) + suffix;
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        requestAnimationFrame(frame);
       } else {
         el.textContent = prefix + format(target) + suffix;
       }
     }
 
-    requestAnimationFrame(animate);
+    requestAnimationFrame(frame);
   }
 
-  counters.forEach(el => {
-    el.dataset.counted = 'false';
-
+  /* Existing HTML counters */
+  $$('[data-count]').forEach(el => {
     const target = Number(el.dataset.count);
 
-    if (Number.isFinite(target)) {
-      el.textContent =
-        (el.dataset.prefix || '') + '0' + (el.dataset.suffix || '');
+    if (!Number.isFinite(target)) return;
+
+    const original = el.textContent.trim();
+    const match = original.match(/^([^\d]*)([\d,.]+)(.*)$/);
+
+    const prefix = el.dataset.prefix ?? (match ? match[1] : '');
+    const suffix = el.dataset.suffix ?? (match ? match[3] : '');
+
+    el.textContent = prefix + '0' + suffix;
+    el.dataset.counted = 'false';
+
+    generatedCounters.push({
+      el,
+      target,
+      prefix,
+      suffix
+    });
+  });
+
+  /* Detect numbers written beside statistic labels */
+  const walker = d.createTreeWalker(
+    d.body,
+    NodeFilter.SHOW_TEXT,
+    {
+      acceptNode(node) {
+        const parent = node.parentElement;
+
+        if (!parent || !node.nodeValue.trim()) {
+          return NodeFilter.FILTER_REJECT;
+        }
+
+        if (parent.closest(
+          'script,style,noscript,svg,nav,footer,address,time,a[href^="tel:"],[data-no-counter],[data-count]'
+        )) {
+          return NodeFilter.FILTER_REJECT;
+        }
+
+        return /\d/.test(node.nodeValue)
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_REJECT;
+      }
+    }
+  );
+
+  const textNodes = [];
+
+  while (walker.nextNode()) {
+    textNodes.push(walker.currentNode);
+  }
+
+  textNodes.forEach(node => {
+    const parent = node.parentElement;
+    const raw = node.nodeValue;
+
+    const ancestors = [
+      parent,
+      parent.parentElement,
+      parent.parentElement?.parentElement
+    ].filter(Boolean);
+
+    const context = ancestors.map(el => {
+      const cls = typeof el.className === 'string'
+        ? el.className
+        : '';
+
+      return cls + ' ' +
+        (el.getAttribute('aria-label') || '') + ' ' +
+        (el.innerText || el.textContent || '').slice(0, 350);
+    }).join(' ');
+
+    if (
+      !statisticWords.test(context) &&
+      !statisticClasses.test(context)
+    ) return;
+
+    const fragment = d.createDocumentFragment();
+    let lastIndex = 0;
+    let match;
+    let changed = false;
+
+    numericToken.lastIndex = 0;
+
+    while ((match = numericToken.exec(raw)) !== null) {
+      const valueText = match[0];
+      const value = Number(valueText.replace(/,/g, ''));
+
+      const before = raw.slice(
+        Math.max(0, match.index - 1),
+        match.index
+      );
+
+      const after = raw.slice(
+        match.index + valueText.length,
+        match.index + valueText.length + 5
+      );
+
+      /* Avoid years, dates, phone-like values and ordinary numbers */
+      if (
+        !Number.isFinite(value) ||
+        value > 1000000 ||
+        value < 0 ||
+        (value >= 1900 && value <= 2099) ||
+        /[\d/.-]$/.test(before) ||
+        /^[\d/.-]/.test(after)
+      ) continue;
+
+      if (match.index > lastIndex) {
+        fragment.appendChild(
+          d.createTextNode(raw.slice(lastIndex, match.index))
+        );
+      }
+
+      const counter = d.createElement('span');
+      counter.className = 'portfolio-auto-counter';
+      counter.textContent = '0';
+      counter.dataset.counted = 'false';
+
+      fragment.appendChild(counter);
+
+      generatedCounters.push({
+        el: counter,
+        target: value,
+        prefix: '',
+        suffix: ''
+      });
+
+      lastIndex = match.index + valueText.length;
+      changed = true;
+    }
+
+    if (changed) {
+      if (lastIndex < raw.length) {
+        fragment.appendChild(
+          d.createTextNode(raw.slice(lastIndex))
+        );
+      }
+
+      node.parentNode.replaceChild(fragment, node);
     }
   });
 
-  if (counters.length && 'IntersectionObserver' in window) {
+  /* Start each counter when it enters the screen */
+  if ('IntersectionObserver' in window) {
     const counterObserver = new IntersectionObserver(entries => {
       entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          count(entry.target);
-          counterObserver.unobserve(entry.target);
+        if (!entry.isIntersecting) return;
+
+        const item = generatedCounters.find(
+          counter => counter.el === entry.target
+        );
+
+        if (item) {
+          animateNumber(
+            item.el,
+            item.target,
+            item.prefix,
+            item.suffix
+          );
         }
+
+        counterObserver.unobserve(entry.target);
       });
     }, {
-      threshold: 0.12,
-      rootMargin: '0px 0px -4% 0px'
+      threshold: 0,
+      rootMargin: '0px'
     });
 
-    counters.forEach(el => counterObserver.observe(el));
+    generatedCounters.forEach(item => {
+      counterObserver.observe(item.el);
+    });
   } else {
-    counters.forEach(count);
+    generatedCounters.forEach(item => {
+      animateNumber(
+        item.el,
+        item.target,
+        item.prefix,
+        item.suffix
+      );
+    });
   }
 
-  /* ---------- 7. Mobile menu ---------- */
+  /* 7. Mobile navigation menu */
   const menu = $('header .menu') || $('.menu');
   const list = $('header nav ul') || $('nav ul');
 
@@ -353,10 +477,10 @@
     menu.setAttribute('aria-controls', list.id);
     menu.setAttribute('aria-expanded', 'false');
 
-    const mobileMenuStyle = d.createElement('style');
-    mobileMenuStyle.id = 'portfolio-mobile-menu-fix';
+    const mobileStyle = d.createElement('style');
+    mobileStyle.id = 'portfolio-mobile-menu-fix';
 
-    mobileMenuStyle.textContent = `
+    mobileStyle.textContent = `
       @media (max-width: 900px) {
         header {
           position: relative;
@@ -381,7 +505,7 @@
           margin: 0 !important;
           gap: 4px !important;
           z-index: 99999 !important;
-          background: var(--card, var(--surface, #ffffff)) !important;
+          background: var(--card, var(--surface, #fff)) !important;
           border: 1px solid var(--line, rgba(0,0,0,.14)) !important;
           border-radius: 14px !important;
           box-shadow: 0 14px 35px rgba(0,0,0,.18) !important;
@@ -405,7 +529,7 @@
     `;
 
     if (!$('#portfolio-mobile-menu-fix')) {
-      d.head.appendChild(mobileMenuStyle);
+      d.head.appendChild(mobileStyle);
     }
 
     const setOpen = open => {
@@ -442,7 +566,7 @@
     });
   }
 
-  /* ---------- 8. Pointer effects ---------- */
+  /* 8. Cursor glow, card spotlight and magnetic buttons */
   if (fine) {
     let raf = 0, mx = 0, my = 0, target = null;
 
@@ -516,12 +640,14 @@
     }
   }
 
-  /* ---------- 9. Smooth page transitions ---------- */
+  /* 9. Page transitions */
   d.addEventListener('click', e => {
     const a = e.target.closest && e.target.closest('a[href]');
 
-    if (!a || e.defaultPrevented || e.button !== 0 ||
-        e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (
+      !a || e.defaultPrevented || e.button !== 0 ||
+      e.metaKey || e.ctrlKey || e.shiftKey || e.altKey
+    ) return;
 
     if (a.target === '_blank' || a.hasAttribute('download')) return;
 
@@ -547,9 +673,11 @@
     setTimeout(() => root.classList.remove('leaving'), 2500);
   });
 
-  addEventListener('pageshow', () => root.classList.remove('leaving'));
+  addEventListener('pageshow', () => {
+    root.classList.remove('leaving');
+  });
 
-  /* ---------- 10. Internship photo gallery and lightbox ---------- */
+  /* 10. Internship photo gallery and lightbox */
   (function gallery() {
     const grid = d.getElementById('gx');
     if (!grid) return;
@@ -563,12 +691,14 @@
     grid.classList.add('ready');
 
     if ('IntersectionObserver' in window) {
-      const gio = new IntersectionObserver(es => es.forEach(e => {
-        if (e.isIntersecting) {
-          e.target.classList.add('in');
-          gio.unobserve(e.target);
-        }
-      }), {
+      const gio = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in');
+            gio.unobserve(entry.target);
+          }
+        });
+      }, {
         threshold: .05,
         rootMargin: '0px 0px -4% 0px'
       });
@@ -582,14 +712,15 @@
       const im = $('img', el);
 
       if (im) {
-        im.addEventListener('error', () => el.classList.add('broken'));
+        im.addEventListener('error', () => {
+          el.classList.add('broken');
+        });
       }
     });
 
     if (!reduce && fine) {
       items.forEach(el => {
         const b = $('.gx-btn', el);
-
         if (!b) return;
 
         el.addEventListener('pointermove', e => {
@@ -631,7 +762,8 @@
     const cnt = $('.gxlb-count', lb);
     const prog = $('.gxlb-bar i', lb);
 
-    let cur = 0, last = null;
+    let cur = 0;
+    let last = null;
 
     function showPhoto(i, dir) {
       cur = (i + items.length) % items.length;
@@ -670,15 +802,27 @@
 
     items.forEach((el, i) => {
       const button = $('.gx-btn', el);
-      if (button) button.addEventListener('click', () => openPhoto(i));
+
+      if (button) {
+        button.addEventListener('click', () => openPhoto(i));
+      }
     });
 
     $('.gxlb-close', lb).addEventListener('click', closePhoto);
-    $('.gxlb-prev', lb).addEventListener('click', () => showPhoto(cur - 1, -1));
-    $('.gxlb-next', lb).addEventListener('click', () => showPhoto(cur + 1, 1));
+
+    $('.gxlb-prev', lb).addEventListener('click', () => {
+      showPhoto(cur - 1, -1);
+    });
+
+    $('.gxlb-next', lb).addEventListener('click', () => {
+      showPhoto(cur + 1, 1);
+    });
 
     lb.addEventListener('click', e => {
-      if (e.target === lb || e.target.classList.contains('gxlb-stage')) {
+      if (
+        e.target === lb ||
+        e.target.classList.contains('gxlb-stage')
+      ) {
         closePhoto();
       }
     });
@@ -706,7 +850,7 @@
     });
   })();
 
-  /* ---------- 11. PDF preview window ---------- */
+  /* 11. PDF preview window */
   (function documents() {
     const links = $$('[data-preview]');
     if (!links.length) return;
@@ -737,10 +881,12 @@
 
     function openDoc(url, name) {
       last = d.activeElement;
+
       title.textContent = name || 'Document';
       openA.href = url;
       dlA.href = url;
       frame.src = url + '#view=FitH';
+
       dv.classList.add('open');
       d.body.style.overflow = 'hidden';
       $('.dvw-x', dv).focus();
@@ -757,12 +903,14 @@
       if (last) last.focus();
     }
 
-    links.forEach(a => a.addEventListener('click', e => {
-      if (!wide.matches) return;
+    links.forEach(a => {
+      a.addEventListener('click', e => {
+        if (!wide.matches) return;
 
-      e.preventDefault();
-      openDoc(a.getAttribute('href'), a.dataset.title);
-    }));
+        e.preventDefault();
+        openDoc(a.getAttribute('href'), a.dataset.title);
+      });
+    });
 
     $('.dvw-x', dv).addEventListener('click', closeDoc);
 
@@ -771,7 +919,12 @@
     });
 
     d.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && dv.classList.contains('open')) closeDoc();
+      if (
+        e.key === 'Escape' &&
+        dv.classList.contains('open')
+      ) {
+        closeDoc();
+      }
     });
   })();
 
