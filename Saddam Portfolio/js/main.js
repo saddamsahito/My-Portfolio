@@ -100,40 +100,169 @@
   }
 
   /* ---------- 5. Animated counters (home page stats) ---------- */
-  const count = el => {
-    const t = +el.dataset.count, s = el.dataset.suffix || '';
-    if (reduce) { el.textContent = t + s; return; }
-    const st = performance.now(), dur = 1800;
-    (function f(n) {
-      const p = Math.min((n - st) / dur, 1);
-      el.textContent = Math.round(t * (1 - Math.pow(1 - p, 3))) + s;
-      if (p < 1) requestAnimationFrame(f);
-    })(st);
-  };
   const counters = $$('[data-count]');
+
+  function count(el) {
+    if (el.dataset.counted === 'true') return;
+
+    const target = Number(el.dataset.count);
+    if (!Number.isFinite(target)) return;
+
+    el.dataset.counted = 'true';
+
+    const suffix = el.dataset.suffix || '';
+    const prefix = el.dataset.prefix || '';
+
+    if (reduce || target === 0) {
+      el.textContent = prefix + target + suffix;
+      return;
+    }
+
+    const duration = 1400;
+    const start = performance.now();
+
+    function animate(now) {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const value = Math.round(target * eased);
+
+      el.textContent = prefix + value.toLocaleString() + suffix;
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        el.textContent = prefix + target.toLocaleString() + suffix;
+      }
+    }
+
+    requestAnimationFrame(animate);
+  }
+
   if (counters.length) {
-    counters.forEach(el => { el.textContent = '0' + (el.dataset.suffix || ''); });
+    counters.forEach(el => {
+      el.dataset.counted = 'false';
+      const target = Number(el.dataset.count);
+      if (Number.isFinite(target)) {
+        el.textContent = (el.dataset.prefix || '') + '0' + (el.dataset.suffix || '');
+      }
+    });
+
     if ('IntersectionObserver' in window) {
-      const co = new IntersectionObserver(es => es.forEach(e => {
-        if (e.isIntersecting) { count(e.target); co.unobserve(e.target); }
-      }), { threshold: .6 });
-      counters.forEach(el => co.observe(el));
-    } else counters.forEach(count);
+      const counterObserver = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            count(entry.target);
+            counterObserver.unobserve(entry.target);
+          }
+        });
+      }, {
+        threshold: 0.15,
+        rootMargin: '0px 0px -5% 0px'
+      });
+
+      counters.forEach(el => counterObserver.observe(el));
+    } else {
+      counters.forEach(count);
+    }
   }
 
   /* ---------- 6. Mobile menu ---------- */
-  const menu = $('.menu'), list = $('nav ul');
+  const menu = $('header .menu') || $('.menu');
+  const list = $('header nav ul') || $('nav ul');
+
   if (menu && list) {
-    const setOpen = o => {
-      list.classList.toggle('open', o);
-      menu.setAttribute('aria-expanded', String(o));
-      menu.textContent = o ? 'Close' : 'Menu';
+    /* Make the menu button accessible and connect it to the navigation list. */
+    if (!list.id) list.id = 'primary-navigation';
+    menu.setAttribute('type', 'button');
+    menu.setAttribute('aria-controls', list.id);
+    menu.setAttribute('aria-expanded', 'false');
+
+    /*
+      The mobile navigation is made visible here as well as through the
+      .open class. This protects the menu if the site's CSS uses a different
+      mobile visibility rule.
+    */
+    const mobileMenuStyle = d.createElement('style');
+    mobileMenuStyle.id = 'portfolio-mobile-menu-fix';
+    mobileMenuStyle.textContent = `
+      @media (max-width: 900px) {
+        header { position: relative; }
+        header nav ul.open,
+        nav ul.open {
+          display: flex !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          pointer-events: auto !important;
+          flex-direction: column !important;
+          align-items: stretch !important;
+          position: absolute !important;
+          top: calc(100% + 10px) !important;
+          right: 12px !important;
+          left: auto !important;
+          width: min(280px, calc(100vw - 24px)) !important;
+          max-height: calc(100vh - 100px) !important;
+          overflow-y: auto !important;
+          padding: 12px !important;
+          margin: 0 !important;
+          gap: 4px !important;
+          z-index: 99999 !important;
+          background: var(--card, var(--surface, #ffffff)) !important;
+          border: 1px solid var(--line, rgba(0,0,0,.14)) !important;
+          border-radius: 14px !important;
+          box-shadow: 0 14px 35px rgba(0,0,0,.18) !important;
+          transform: none !important;
+        }
+        header nav ul.open li,
+        nav ul.open li {
+          display: block !important;
+          width: 100% !important;
+        }
+        header nav ul.open a,
+        nav ul.open a {
+          display: block !important;
+          width: 100% !important;
+          padding: 12px 14px !important;
+          text-align: left !important;
+        }
+      }
+    `;
+    if (!$('#portfolio-mobile-menu-fix')) {
+      d.head.appendChild(mobileMenuStyle);
+    }
+
+    const setOpen = open => {
+      list.classList.toggle('open', open);
+      menu.setAttribute('aria-expanded', String(open));
+      menu.textContent = open ? 'Close' : 'Menu';
     };
-    menu.addEventListener('click', () => setOpen(!list.classList.contains('open')));
-    list.addEventListener('click', e => { if (e.target.closest('a')) setOpen(false); });
-    d.addEventListener('click', e => { if (!e.target.closest('header')) setOpen(false); });
-    d.addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
-    addEventListener('resize', () => { if (innerWidth > 900) setOpen(false); });
+
+    /* Start closed on mobile; leave the desktop navigation unchanged. */
+    if (innerWidth <= 900) setOpen(false);
+
+    menu.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      setOpen(!list.classList.contains('open'));
+    });
+
+    list.addEventListener('click', e => {
+      if (e.target.closest('a')) setOpen(false);
+    });
+
+    d.addEventListener('click', e => {
+      if (!e.target.closest('header')) setOpen(false);
+    });
+
+    d.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        menu.focus();
+      }
+    });
+
+    addEventListener('resize', () => {
+      if (innerWidth > 900) setOpen(false);
+    });
   }
 
   /* ---------- 7. Pointer effects: card spotlight, cursor glow, magnetic buttons, photo tilt ---------- */
